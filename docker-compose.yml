@@ -1,0 +1,57 @@
+version: '3.8'
+
+services:
+  # 1. データベース (PostgreSQL)
+  postgres-db:
+    image: postgres:15-alpine
+    container_name: sandbox-db
+    environment:
+      POSTGRES_MULTIPLE_DATABASES: "hive_meta,ranger_db" # 初期化スクリプトで作成
+      POSTGRES_PASSWORD: rootpassword
+    ports:
+      - "5432:5432"
+    volumes:
+      - db-data:/var/lib/postgresql/data
+      - ./init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
+    networks:
+      - sandbox-net
+
+  # 2. Hadoop + HiveServer2 + Ranger Plugin
+  hive-server:
+    build: ./hive-hadoop
+    container_name: sandbox-hive
+    environment:
+      - HADOOP_HOME=/opt/hadoop
+      - HIVE_HOME=/opt/hive
+    ports:
+      - "10000:10000" # HiveServer2 (Beeline接続用)
+      - "19870:19870" # NameNode Web UI
+    volumes:
+      - ./hive-hadoop/entrypoint.sh:/entrypoint.sh
+      # ─── 💡 ここから下の2行を追記 ───
+      - /opt/hadoop/share/hadoop/yarn/lib/jackson-jaxrs-json-provider-2.12.7.jar:/opt/hive/lib/jackson-jaxrs-json-provider-2.12.7.jar
+      - /opt/hadoop/share/hadoop/yarn/lib/jackson-jaxrs-base-2.12.7.jar:/opt/hive/lib/jackson-jaxrs-base-2.12.7.jar
+    depends_on:
+      - postgres-db
+    networks:
+      - sandbox-net
+
+  # 3. Ranger Admin
+  ranger-admin:
+    build: ./ranger-admin
+    container_name: sandbox-ranger
+    ports:
+      - "6080:6080" # Ranger Web UI
+    volumes:
+      - ./ranger-admin/entrypoint.sh:/entrypoint.sh
+    depends_on:
+      - postgres-db
+    networks:
+      - sandbox-net
+
+volumes:
+  db-data:
+
+networks:
+  sandbox-net:
+    driver: bridge

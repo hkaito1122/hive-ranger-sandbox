@@ -1,0 +1,6 @@
+netstat -an | grep 10000
+ps -ef | grep hiveserver2
+
+
+
+docker exec -it sandbox-hive bash
