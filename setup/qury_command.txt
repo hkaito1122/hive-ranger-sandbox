@@ -1,0 +1,38 @@
+docker exec -it sandbox-hive bash
+
+beeline -u "jdbc:hive2://localhost:10000" -n hive
+
+CREATE TABLE default.test_table (
+    name STRING,
+    salary STRING
+)
+ROW FORMAT DELIMITED
+FIELDS TERMINATED BY ','
+STORED AS TEXTFILE;
+
+!quit
+
+echo "Alice,500000" > /tmp/test_table.csv
+echo "Bob,300000" >> /tmp/test_table.csv
+cat /tmp/test_table.csv
+
+exit
+
+docker restart sandbox-hive
+
+docker exec -it sandbox-hive bash
+
+hdfs dfs -put -f /tmp/test_table.csv /tmp/
+
+beeline -u "jdbc:hive2://localhost:10000" -n hive
+
+LOAD DATA INPATH '/tmp/test_table.csv' INTO TABLE default.test_table;
+
+SELECT * FROM default.test_table;
+
+!quit
+
+beeline -u "jdbc:hive2://localhost:10000" -n child
+
+SELECT * FROM default.test_table;
+

@@ -1,0 +1,23 @@
+# イメージ名の確認（環境によって名前が少し異なる場合があります）
+docker images
+
+# 各イメージを tar ファイルとして保存
+# HiveServer2 のイメージを出力（約5.9GB）
+docker save -o hive-server-image.tar hive-ranger-sandbox-hive-server:latest
+
+# Ranger Admin のイメージを出力（約3.2GB）
+docker save -o ranger-admin-image.tar hive-ranger-sandbox-ranger-admin:latest
+
+# PostgreSQL のイメージを出力（約386MB）
+docker save -o postgres-image.tar postgres:15-alpine
+
+docker load -i postgres-image.tar
+docker load -i hive-server-image.tar
+docker load -i ranger-admin-image.tar
+
+docker compose down -v
+docker rmi hive-ranger-sandbox-sandbox-hive:latest 2>/dev/null || true
+docker image prune -a -f
+docker builder prune -a -f
+
+docker compose up -d --build

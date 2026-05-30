@@ -1,0 +1,18 @@
+# ① hive の分割（materials/split/hive/ フォルダ内に出力）
+split -b 90m hive-server-image.tar split/hive/hive_chunk_
+
+# ② ranger の分割（materials/split/ranger/ フォルダ内に出力）
+split -b 90m ranger-admin-image.tar split/ranger/ranger_chunk_
+
+# ③ postgres の分割（materials/split/posgre/ フォルダ内に出力）
+split -b 90m postgres-image.tar split/posgre/postgres_chunk_
+
+
+# ① hive の復元（split/hive/ 配下の破片をすべて集めて結合）
+cat split/hive/hive_chunk_* > hive-server-image.tar
+
+# ② ranger の復元（split/ranger/ 配下の破片をすべて集めて結合）
+cat split/ranger/ranger_chunk_* > ranger-admin-image.tar
+
+# ③ postgres の復元（split/posgre/ 配下の破片をすべて集めて結合）
+cat split/posgre/postgres_chunk_* > postgres-image.tar

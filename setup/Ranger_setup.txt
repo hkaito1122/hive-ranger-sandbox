@@ -1,0 +1,31 @@
+#ログイン
+http://localhost:6080/login.jsp
+username:admin
+password:admin
+
+#Tag based Policiesの設定
+
+#serviceの設定（HadoopSQL）
+Service Name:hive
+username:admin
+password:admin
+jdbc.driverClassName:org.apache.hive.jdbc.HiveDriver
+jdbc.url:jdbc:hive2://sandbox-hive:10000/default
+
+#Userの追加（child）
+username:child
+password:childPassword1234
+firstname:child
+selectRole:User
+
+#AccessPolicyに追加(childのselect権限)
+PolicyName:allow_child_select
+database:default
+table:test_table
+columns:*
+
+#MaskingPolicyの追加(childのselect時)
+PolicyName:mask_test_table
+database:default
+table:test_table
+columns:salary
