@@ -1,6 +1,68 @@
-netstat -an | grep 10000
-ps -ef | grep hiveserver2
+docker compose up -d
 
+docker restart sandbox-hive
 
+# rootで作成
+docker exec -it sandbox-hive bash
+beeline -u "jdbc:hive2://localhost:10000" -n hive
+
+SELECT current_user();
+CREATE TABLE default.financial_data (
+    name STRING,
+    salary STRING
+)
+ROW FORMAT DELIMITED
+FIELDS TERMINATED BY ','
+STORED AS TEXTFILE;
+!quit
 
 docker exec -it sandbox-hive bash
+echo "Alice,500000" > /tmp/financial_data.csv
+echo "Bob,300000" >> /tmp/financial_data.csv
+cat /tmp/financial_data.csv
+
+docker restart sandbox-hive
+docker exec -it sandbox-hive bash
+
+# HDFS上にファイルをコピー
+hdfs dfs -put -f /tmp/financial_data.csv /tmp/
+
+beeline -u "jdbc:hive2://localhost:10000" -n hive
+
+LOAD DATA LOCAL INPATH '/tmp/financial_data.csv' INTO TABLE default.financial_data;
+
+SELECT * FROM default.financial_data;
+!quit
+
+# child_usernで確認
+
+beeline -u "jdbc:hive2://localhost:10000" -n child
+
+SELECT * FROM default.financial_data;
+!quit
+
+
+# イメージ名の確認（環境によって名前が少し異なる場合があります）
+docker images
+
+# 各イメージを tar ファイルとして保存
+# HiveServer2 のイメージを出力（約5.9GB）
+docker save -o hive-server-image.tar hive-ranger-sandbox-hive-server:latest
+
+# Ranger Admin のイメージを出力（約3.2GB）
+docker save -o ranger-admin-image.tar hive-ranger-sandbox-ranger-admin:latest
+
+# PostgreSQL のイメージを出力（約386MB）
+docker save -o postgres-image.tar postgres:15-alpine
+
+docker load -i postgres-image.tar
+docker load -i hive-server-image.tar
+docker load -i ranger-admin-image.tar
+
+
+docker compose down -v
+docker rmi hive-ranger-sandbox-sandbox-hive:latest 2>/dev/null || true
+docker image prune -a -f
+docker builder prune -a -f
+# もしイメージ名が異なる場合は、docker compose build --no-cache でも代用可能です
+docker compose up -d --build

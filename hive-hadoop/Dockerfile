@@ -30,7 +30,7 @@ RUN ssh-keygen -t rsa -P '' -f ~/.ssh/id_rsa && \
 
 # (他の記述の下に追記)
 COPY hive-site.xml /opt/hive/conf/hive-site.xml
-
+COPY ranger-hive-security.xml /opt/hive/conf/ranger-hive-security.xml
 # 起動スクリプトの配置
 COPY entrypoint.sh /entrypoint.sh
 RUN sed -i 's/\r$//' /entrypoint.sh

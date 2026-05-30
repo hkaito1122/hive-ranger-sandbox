@@ -4,9 +4,12 @@ set -e
 # ==========================================================
 # 📦 Injecting missing Jackson JARs for Ranger
 # ==========================================================
-# ※コンテナが起動した瞬間に、内部のHadoopフォルダからHiveフォルダへJARを避難させます
+# ※コンテナが起動した瞬間に、必要なJARをHiveフォルダへコピーします
 mkdir -p /opt/hive/lib
-cp /opt/hadoop/share/hadoop/yarn/lib/jackson-jaxrs-*.jar /opt/hive/lib/ 2>/dev/null || true
+cp /opt/hive/hcatalog/share/webhcat/svr/lib/jackson-jaxrs-1.9.2.jar /opt/hive/lib/ 2>/dev/null || true
+
+# SLF4Jの複数バインディング警告を解消するため、Hive側の不要なjarを削除
+rm -f /opt/hive/lib/log4j-slf4j-impl-*.jar
 
 # 1. Javaのパスを自動検出（ここから下はいつも通り）
 export JAVA_HOME=$(dirname $(dirname $(readlink -f $(which java))))
@@ -48,14 +51,13 @@ cd /tmp
 tar -xzf ranger-2.4.0-hive-plugin.tar.gz
 cd ranger-2.4.0-hive-plugin
 sed -i 's|POLICY_MGR_URL=.*|POLICY_MGR_URL=http://sandbox-ranger:6080|' install.properties
-sed -i 's|REPOSITORY_NAME=.*|REPOSITORY_NAME=my_hive_repo|' install.properties
+sed -i 's|REPOSITORY_NAME=.*|REPOSITORY_NAME=hive|' install.properties
 sed -i "s|COMPONENT_INSTALL_DIR_NAME=.*|COMPONENT_INSTALL_DIR_NAME=/opt/hive|" install.properties
 ./enable-hive-plugin.sh
 
 # ─── 💡 ここを新規追記：Rangerプラグインが要求するクラス(Jackson)をHadoopからHiveへ横流しする ───
 echo "Copying missing jackson-jaxrs jars for Ranger Plugin..."
-cp /opt/hadoop/share/hadoop/yarn/lib/jackson-jaxrs-json-provider-*.jar /opt/hive/lib/ 2>/dev/null || true
-cp /opt/hadoop/share/hadoop/yarn/lib/jackson-jaxrs-base-*.jar /opt/hive/lib/ 2>/dev/null || true
+cp /opt/hive/hcatalog/share/webhcat/svr/lib/jackson-jaxrs-1.9.2.jar /opt/hive/lib/ 2>/dev/null || true
 
 # 10. メタストアDB（PostgreSQL）の検証と初期スキーマ作成
 /opt/hive/bin/schematool -validate -dbType postgres || /opt/hive/bin/schematool -dbType postgres -initSchema
@@ -67,6 +69,9 @@ echo "=========================================================="
 
 if [ -f "/opt/hive/conf/hive-site.xml" ]; then
     sed -i 's/<value>tez<\/value>/<value>mr<\/value>/g' /opt/hive/conf/hive-site.xml
+    # Zookeeper ConnectionLoss回避のため、動的サービスディスカバリと権限同期を無効化
+    sed -i '/<\/configuration>/i \    <property>\n        <name>hive.server2.support.dynamic.service.discovery<\/name>\n        <value>false<\/value>\n    <\/property>' /opt/hive/conf/hive-site.xml
+    sed -i '/<\/configuration>/i \    <property>\n        <name>hive.privilege.synchronizer<\/name>\n        <value>false<\/value>\n    <\/property>' /opt/hive/conf/hive-site.xml
 fi
 
 export HIVE_ROOT_LOGGER=INFO,CONSOLE

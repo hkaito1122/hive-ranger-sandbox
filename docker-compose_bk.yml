@@ -16,7 +16,8 @@ services:
 
   # 2. Hadoop + HiveServer2 + Ranger Plugin
   hive-server:
-    build: ./hive-hadoop
+    # build: ./hive-hadoop   # 💡 ここをコメントアウト
+    image: hive-ranger-sandbox-hive-server:latest # 💡 ここを追記
     container_name: sandbox-hive
     environment:
       - HADOOP_HOME=/opt/hadoop
@@ -36,7 +37,8 @@ services:
 
   # 3. Ranger Admin
   ranger-admin:
-    build: ./ranger-admin
+    # build: ./ranger-admin  # 💡 ここをコメントアウト
+    image: hive-ranger-sandbox-ranger-admin:latest # 💡 ここを追記
     container_name: sandbox-ranger
     ports:
       - "6080:6080" # Ranger Web UI

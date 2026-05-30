@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<?xml-stylesheet type="text/xsl" href="configuration.xsl"?>
+<configuration xmlns:xi="http://www.w3.org/2001/XInclude">
+    <property>
+        <name>ranger.plugin.hive.service.name</name>
+        <value>hive</value>
+    </property>
+
+    <property>
+        <name>ranger.plugin.hive.policy.source.impl</name>
+        <value>org.apache.ranger.admin.client.RangerAdminRESTClient</value>
+    </property>
+
+    <property>
+        <name>ranger.plugin.hive.policy.rest.url</name>
+        <value>http://sandbox-ranger:6080</value>
+    </property>
+
+    <property>
+        <name>ranger.plugin.hive.policy.pollIntervalMs</name>
+        <value>30000</value>
+    </property>
+
+    <property>
+        <name>ranger.plugin.hive.policy.cache.dir</name>
+        <value>/etc/ranger/hive/policycache</value>
+    </property>
+
+    <property>
+        <name>xasecure.hive.update.xapolicies.on.grant.revoke</name>
+        <value>true</value>
+    </property>
+</configuration>

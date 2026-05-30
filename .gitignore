@@ -1,3 +1,4 @@
 *.tar.gz
+*.tar           # 💡これを追記（拡張子が .tar のイメージファイルをGit管理から外す）
 .DS_Store
-**/ .DS_Store
+**/.DS_Store

@@ -1,0 +1,54 @@
+docker exec -it ranger-db psql -U postgres -d postgres -c "UPDATE x_portal_user SET password='ceb4f32325eda6142bd65215f4c0f371' WHERE login_id='admin';"
+docker-compose restart ranger
+
+👥 【Step 2】デモユーザーの登録
+マスキングの効果を実演するために、まずは「親ユーザー」と「子供ユーザー」の2人をRangerに登録します。
+	1.	画面右上のメニュー、または設定アイコンから 「Settings」 -> 「Users/Groups」 をクリックします。
+	2.	ユーザー一覧画面の右上にある 「Add New User」 ボタンをクリックします。
+	3.	以下の内容で 2人分、順番にユーザーを作成して「Save」で保存してください。
+👤 1人目：親ユーザー（マスクなしで全見せするユーザー）
+•	User Name: parent_user
+•	Password: ParentPassword123
+•	Role: User
+👤 2人目：子供ユーザー（特定の列をマスクするユーザー）
+•	User Name: child_user
+•	Password: ChildPassword123
+•	Role: User
+🛡️ 【Step 3】動的マスキングポリシー（Data Masking）の設定
+次に、Rangerの画面から「子供ユーザーがアクセスした時だけ、特定のカラムを自動で暗号化（ハッシュ化）する」という魔法のルールを設定します。
+	1.	画面左上の「Ranger」ロゴをクリックしてダッシュボード（トップ画面）に戻ります。
+	2.	「HIVE」 のエリア内にある、自動生成された hive（または cloudera_hive 等のリンク）をクリックします。
+	3.	画面上部にある 「Masking」タブ をクリックします（※デフォルトは「Access」タブになっているので注意してください）。
+	4.	右上にある 「Add New Policy」 ボタンをクリックし、以下の通りに入力します。
+📋 ポリシーの基本情報
+•	Policy Name: mask_financial_salary
+•	Database: default
+•	Table: financial_data （※後ほどSpark側で作成するParquetテーブル名です）
+•	Hive Column: salary （※隠したい金額や個人情報カラム）
+🔒 マスキングルールの指定（画面下部の「Masking Conditions」）
+•	Select User: child_user を指定します。
+•	Data Mask Option: Hash を選択します（これにより、文字列が自動で不規則なハッシュ値に置き換わります）。
+入力できたら、一番下の 「Save」 ボタンを押して保存します。
+
+
+docker-compose down --remove-orphans
+docker-compose up -d
+docker exec -it spark-hive-env bash
+
+HADOOP_USER_NAME=parent_user /spark/bin/spark-sql \
+  --conf spark.sql.catalogImplementation=hive
+
+  -- テーブルの作成
+CREATE TABLE default.financial_data (
+    name STRING,
+    salary STRING
+) STORED AS PARQUET;
+
+-- デモデータの挿入
+INSERT INTO default.financial_data VALUES ('Alice', '500000'), ('Bob', '300000');
+
+-- 生データが見えるか確認
+SELECT * FROM default.financial_data;
+
+-- 一旦抜ける
+exit;
